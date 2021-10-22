@@ -1,47 +1,30 @@
 <template>
 	<div class="container column">
-		<app-form
-			v-model="type"
-			v-model:form-value="formValue"
-			@addBlock="addBlock()"
-		></app-form>
-
-		<app-loader v-if="!isActive"></app-loader>
-		<div class="card card-w70" v-show="isActive">
-				<div v-for="item in componentsList" :key="item.id">
-					<component :is="item.currentComponent" v-bind="item"></component>
-				</div>
-
-				<h3 v-if="!componentsList.length">Добавьте первый блок, чтобы увидеть результат</h3>
-		</div>
+		<ResumeForm @addBlock="addBlock" />
+		<AppLoader v-if="!isActive" />
+		<ResumeView
+			:blocks="componentsList"
+			:isActive="isActive"
+		/>
 	</div>
 	<div class="container">
-		<p>
-			<button class="btn primary" @click="load">Загрузить комментарии</button>
-		</p>
-		<app-comments :comments="comments"></app-comments>
-		<app-loader v-if="isLoad"></app-loader>
+		<ResumeComments
+			@load="loadComments"
+			:comments="comments"
+		/>
+		<AppLoader v-if="isLoad" />
 	</div>
 </template>
 
 <script>
-import AppForm from './components/AppForm.vue'
-import AppTitle from './components/AppTitle.vue'
-import AppAvatar from './components/AppAvatar.vue'
-import AppSubtitle from './components/AppSubtitle.vue'
-import AppText from './components/AppText.vue'
-import AppComments from './components/AppComments.vue'
+import ResumeForm from './components/ResumeForm.vue'
+import ResumeComments from './components/ResumeComments.vue'
+import ResumeView from './components/ResumeView.vue'
 import AppLoader from './components/AppLoader.vue'
 import axios from 'axios'
 
 export default {
 	data: () => ({
-		type: 'title',
-		formValue: '',
-		title: '',
-		avatar: '',
-		subtitle: '',
-		text: '',
 		componentsList: [],
 		comments: [],
 		isLoad: false,
@@ -49,75 +32,47 @@ export default {
 	}),
 	async mounted() {
 		try {
-			const {data} = await axios.get('https://vue-coursework-2-default-rtdb.firebaseio.com/blocks.json')
-		
+			const {data} = await axios.get(process.env.VUE_APP_DB_URL)
+
 			this.componentsList = Object.keys(data).map(key => {
 				return {
 					id: key,
 					...data[key]
 				}
 			})
-		} catch (error) {
-			console.log('Список блоков пуст!', error.message)
-		}
+		} catch (e) { console.log('Список блоков пуст!', e.message) }
 
-		setTimeout(() => {
-			this.isActive = true
-		}, 300)
+		setTimeout(() => { this.isActive = true }, 300)
 	},
 	methods: {
-		async addBlock() {
-			const {data} = await axios.post('https://vue-coursework-2-default-rtdb.firebaseio.com/blocks.json', {
-				currentComponent: this.currentComponent,
-				[this.type]: this.formValue
+		async addBlock({type, value}) {
+			const {data} = await axios.post(process.env.VUE_APP_DB_URL, {
+				currentComponent: `resume-${type}`,
+				[type]: value
 			})
 
 			this.componentsList.push({
 				id: data.name,
-				currentComponent: this.currentComponent,
-				[this.type]: this.formValue
+				currentComponent: `resume-${type}`,
+				[type]: value
 			})
-			this.formValue = ''
 		},
-		load() {
+		loadComments() {
 			this.isLoad = true
 			setTimeout(async () => {
 				try {
 					const {data} = await axios.get('https://jsonplaceholder.typicode.com/comments?_limit=42')
 					this.comments = data
 					this.isLoad = false
-				} catch (error) {
-					console.log(error)
-				}
+				} catch (e) { console.log(e.message) }
 			}, 800)
 		}
 	},
-	computed: {
-		currentComponent() {
-			return `app-${this.type}`
-		}
-	},
 	components: {
-		AppForm,
-		AppTitle,
-		AppAvatar,
-		AppSubtitle,
-		AppText,
-		AppComments,
+		ResumeForm,
+		ResumeComments,
+		ResumeView,
 		AppLoader
 	}
 }
 </script>
-
-<style>
-.avatar {
-	display: flex;
-	justify-content: center;
-}
-
-.avatar img {
-	width: 150px;
-	height: auto;
-	border-radius: 50%;
-}
-</style>

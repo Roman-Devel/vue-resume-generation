@@ -10,6 +10,10 @@
 			</li>
 		</ul>
 	</div>
+
+	<p v-else>
+		<button class="btn primary" @click="$emit('load')">Загрузить комментарии</button>
+	</p>
 </template>
 
 <script>
